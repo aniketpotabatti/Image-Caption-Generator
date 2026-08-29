@@ -33,6 +33,12 @@ def get_model(device: str = "cpu"):
                 # we also need to produce prefix-like outputs for generate (not used in training)
                 self.prefix_len = 10
                 self.prefix_dim = dim
+                # For dummy generation, we'll use a fixed phrase
+                from transformers import GPT2TokenizerFast
+                self.tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+                self.dummy_phrase = "a dummy caption"
+                self.dummy_token_ids = torch.tensor(self.tokenizer.encode(self.dummy_phrase), dtype=torch.long)
 
             def forward(self, images, input_ids, attention_mask):
                 """
@@ -50,13 +56,14 @@ def get_model(device: str = "cpu"):
             @torch.no_grad()
             def generate(self, images, max_length=30, num_beams=1, temperature=1.0, top_p=0.9, do_sample=True, **kwargs):
                 """
-                Dummy generation: returns fixed token ids (e.g., repeats of eos token) to keep compatibility.
-                In HF API mode we won't call this.
+                Dummy generation: returns fixed token ids for a dummy phrase.
                 """
                 batch_size = images.shape[0] if torch.is_tensor(images) else len(images)
-                # Just return eos token repeated
-                eos_token_id = 50256  # GPT-2 eos
-                generated = torch.full((batch_size, 1), eos_token_id, dtype=torch.long, device=images.device if torch.is_tensor(images) else torch.device('cpu'))
-                return generated
+                # Repeat the dummy token ids for each item in the batch
+                # We'll return a list of tensors as expected by the captioning script.
+                # The dummy_token_ids are 1D; we need to add batch dimension.
+                generated = self.dummy_token_ids.unsqueeze(0).repeat(batch_size, 1)
+                # Return as list of tensors (one per batch item) to match HFInferenceWrapper output format
+                return [generated[i] for i in range(batch_size)]
 
         return DummyCaptionModel().to(device)
