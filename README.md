@@ -80,6 +80,8 @@ Image Caption Generator/
 └─ tests/
     ├─ test_model.py            # Unit tests for core components
     └─ (more tests to be added)
+```
+
 ## Installation
 ```bash
 # Clone the repository
@@ -92,7 +94,7 @@ source venv/Scripts/activate   # Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
+
 
 *If a `requirements.txt` is not yet present, install the core packages manually:*
 ```bash
